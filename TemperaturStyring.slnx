@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="TemperaturStyring/TemperaturStyring.csproj" />
+  <Project Path="XUnitTest/XUnitTest.csproj" />
 </Solution>
