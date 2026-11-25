@@ -1,17 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
-namespace TemperaturStyring.Models
+namespace TemperaturStyring.Models;
+
+public class ThermometerDbContext : IdentityDbContext<ApplicationUser>
 {
-    public class ThermometerDbContext : DbContext
+    public ThermometerDbContext(
+        DbContextOptions<ThermometerDbContext> options)
+        : base(options)
     {
-        public ThermometerDbContext(DbContextOptions<ThermometerDbContext> options) : base(options)
-        { 
-        }
-        
-                    public DbSet<Thermometer> Thermometers { get; set; }
-
     }
 
+    public DbSet<Thermometer> Thermometers => Set<Thermometer>();
 }
-
