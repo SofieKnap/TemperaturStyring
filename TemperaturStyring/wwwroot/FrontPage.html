@@ -1,10 +1,36 @@
 ﻿<!DOCTYPE html>
-<html>
+<html lang="da">
 <head>
     <meta charset="utf-8" />
-    <title></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Temperaturstyring</title>
+    <link rel="stylesheet" href="/Index.css" />
 </head>
+
 <body>
-    DET VIRKER GUTTERNE
+    <main class="card">
+        <h1 class="card-title">Temperaturstyring</h1>
+
+        <p id="temperature"></p>
+        <p id="regulation"></p>
+
+        <form id="limitsForm" hidden style="display: none">
+            <label for="minTemp">Nedre temperaturgrænse (°C)</label>
+            <input id="minTemp" type="number" min="10" max="30"
+                   step="any" required />
+
+            <label for="maxTemp">Øvre temperaturgrænse (°C)</label>
+            <input id="maxTemp" type="number" min="10" max="30"
+                   step="any" required />
+
+            <button id="saveButton" type="submit" class="button">
+                Gem temperaturgrænser
+            </button>
+        </form>
+
+        <p id="message" role="status"></p>
+    </main>
+
+    <script src="/FrontPage.js"></script>
 </body>
 </html>
