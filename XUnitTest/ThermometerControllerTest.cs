@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using TemperaturStyring.Controllers;
 using TemperaturStyring.Models;
 
@@ -6,16 +7,28 @@ namespace TemperaturStyring.Tests.Controllers;
 
 public class ThermometerControllerTests
 {
-    [Fact]
-    public void Get_ReturnsOkWithThermometers()
+    private static ThermometerDbContext CreateContext()
     {
-        // Arrange
-        var controller = new ThermometerController();
+        var options = new DbContextOptionsBuilder<ThermometerDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
 
-        // Act
-        var result = controller.Get();
+        var context = new ThermometerDbContext(options);
 
-        // Assert
+        context.Thermometers.Add(new Thermometer(1, 20, 10, 30));
+        context.SaveChanges();
+
+        return context;
+    }
+
+    [Fact]
+    public async Task Get_ReturnsAllThermometers()
+    {
+        using var context = CreateContext();
+        var controller = new ThermometerController(context);
+
+        var result = await controller.Get();
+
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
         var thermometers = Assert.IsAssignableFrom<IEnumerable<Thermometer>>(
             okResult.Value);
@@ -24,102 +37,72 @@ public class ThermometerControllerTests
     }
 
     [Fact]
-    public void Get_returnsNoContentWhenNoThermometers()
+    public async Task Get_ReturnsEmptyCollectionWhenNoThermometers()
     {
-        // Arrange
-        var controller = new ThermometerController();
+        using var context = CreateContext();
+        var controller = new ThermometerController(context);
 
-        // Remove the default thermometer
-        controller.Delete(1);
+        await controller.Delete(1);
+        var result = await controller.Get();
 
-        // Act
-        var result = controller.Get();
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        var thermometers = Assert.IsAssignableFrom<IEnumerable<Thermometer>>(
+            okResult.Value);
 
-        // Assert
-        var noContentResult = Assert.IsType<NoContentResult>(result.Result);
-
-        Assert.Equal(204, noContentResult.StatusCode);
+        Assert.Empty(thermometers);
     }
 
     [Fact]
-    public void Get_WithUnknownId_ReturnsNotFound()
+    public async Task Get_WithUnknownId_ReturnsNotFound()
     {
-        // Arrange
-        var controller = new ThermometerController();
+        using var context = CreateContext();
+        var controller = new ThermometerController(context);
 
-        // Act
-        var result = controller.Get(999);
+        var result = await controller.Get(999);
 
-        // Assert
         Assert.IsType<NotFoundResult>(result.Result);
     }
 
     [Fact]
-    public void Get_WithKnownId_ReturnsOkWithThermometer()
+    public async Task Get_WithKnownId_ReturnsThermometer()
     {
-        // Arrange
-        var controller = new ThermometerController();
-        // Act
-        var result = controller.Get(1);
-        // Assert
+        using var context = CreateContext();
+        var controller = new ThermometerController(context);
+
+        var result = await controller.Get(1);
+
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
         var thermometer = Assert.IsType<Thermometer>(okResult.Value);
+
         Assert.Equal(1, thermometer.ThermometerId);
     }
 
     [Fact]
-    public void Post_WithExistingId_ReturnsConflict()
+    public async Task Post_WithValidThermometer_ReturnsCreated()
     {
-        // Arrange
-        var controller = new ThermometerController();
-        var thermometer = new Thermometer(
-            thermometerId: 1,
-            currentTemperature: 20,
-            minTemperature: 15,
-            maxTemperature: 25);
-        // Act
-        var result = controller.Post(thermometer);
-        // Assert
-        var conflictResult = Assert.IsType<ConflictObjectResult>(result.Result);
-        Assert.Equal(409, conflictResult.StatusCode);
-    }
+        using var context = CreateContext();
+        var controller = new ThermometerController(context);
 
-    [Fact]
-    public void Post_WithValidThermometer_ReturnsCreated()
-    {
-        // Arrange
-        var controller = new ThermometerController();
-        var thermometer = new Thermometer(
-            thermometerId: 2,
-            currentTemperature: 20,
-            minTemperature: 15,
-            maxTemperature: 25);
+        var thermometer = new Thermometer(0, 20, 15, 25);
 
-        // Act
-        var result = controller.Post(thermometer);
+        var result = await controller.Post(thermometer);
 
-        // Assert
         var createdResult = Assert.IsType<CreatedAtActionResult>(result.Result);
 
         Assert.Equal(201, createdResult.StatusCode);
-        Assert.Equal(thermometer, createdResult.Value);
+        Assert.NotEqual(0, thermometer.ThermometerId);
     }
 
     [Fact]
-    public void Post_WithInvalidTemperatureLimits_ReturnsBadRequest()
+    public async Task Post_WithInvalidTemperatureLimits_ReturnsBadRequest()
     {
-        // Arrange
-        var controller = new ThermometerController();
-        var thermometer = new Thermometer(
-            thermometerId: 2,
-            currentTemperature: 20,
-            minTemperature: 5,
-            maxTemperature: 25);
+        using var context = CreateContext();
+        var controller = new ThermometerController(context);
 
-        // Act
-        var result = controller.Post(thermometer);
+        var thermometer = new Thermometer(0, 20, 5, 25);
 
-        // Assert
+        var result = await controller.Post(thermometer);
+
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(
             result.Result);
 
@@ -127,64 +110,116 @@ public class ThermometerControllerTests
     }
 
     [Fact]
-    public void Put_WithUnknownId_ReturnsNotFound()
+    public async Task Post_WithNonFiniteTemperature_ReturnsBadRequest()
     {
-        // Arrange
-        var controller = new ThermometerController();
+        using var context = CreateContext();
+        var controller = new ThermometerController(context);
+
+        var thermometer = new Thermometer(0, double.NaN, 15, 25);
+
+        var result = await controller.Post(thermometer);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task Put_WithUnknownId_ReturnsNotFound()
+    {
+        using var context = CreateContext();
+        var controller = new ThermometerController(context);
+
         var thermometer = new Thermometer(999, 20, 15, 25);
 
-        // Act
-        var result = controller.Put(999, thermometer);
+        var result = await controller.Put(999, thermometer);
 
-        // Assert
         Assert.IsType<NotFoundResult>(result);
     }
 
     [Fact]
-    public void Put_WithValidThermometer_ReturnsNoContent()
+    public async Task Put_WithValidThermometer_ReturnsNoContent()
     {
-        // Arrange
-        var controller = new ThermometerController();
-        var thermometer = new Thermometer(1, 22, 15, 25);
-        // Act
-        var result = controller.Put(1, thermometer);
-        // Assert
+        using var context = CreateContext();
+        var controller = new ThermometerController(context);
+
+        var updatedThermometer = new Thermometer(1, 22, 15, 25);
+
+        var result = await controller.Put(1, updatedThermometer);
+
         Assert.IsType<NoContentResult>(result);
+
+        var thermometer = await context.Thermometers.FindAsync(1);
+
+        Assert.NotNull(thermometer);
+        Assert.Equal(22, thermometer.CurrentTemp);
+        Assert.Equal(15, thermometer.MinTemp);
+        Assert.Equal(25, thermometer.MaxTemp);
     }
 
     [Fact]
-    public void Put_WithInvalidTemperatureLimits_ReturnsBadRequest()
+    public async Task Put_WithInvalidTemperatureLimits_ReturnsBadRequest()
     {
-        // Arrange
-        var controller = new ThermometerController();
+        using var context = CreateContext();
+        var controller = new ThermometerController(context);
+
         var thermometer = new Thermometer(1, 22, 5, 25);
-        // Act
-        var result = controller.Put(1, thermometer);
-        // Assert
+
+        var result = await controller.Put(1, thermometer);
+
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+
         Assert.Equal(400, badRequestResult.StatusCode);
     }
 
     [Fact]
-    public void Delete_WithUnknownId_ReturnsNotFound()
+    public async Task UpdateLimits_WithValidLimits_ReturnsUpdatedThermometer()
     {
-        // Arrange
-        var controller = new ThermometerController();
-        // Act
-        var result = controller.Delete(999);
-        // Assert
+        using var context = CreateContext();
+        var controller = new ThermometerController(context);
+
+        var request = new TemperatureLimitsRequest(12, 28);
+
+        var result = await controller.UpdateLimits(1, request);
+
+        var okResult = Assert.IsType<OkObjectResult>(result.Result);
+        var thermometer = Assert.IsType<Thermometer>(okResult.Value);
+
+        Assert.Equal(12, thermometer.MinTemp);
+        Assert.Equal(28, thermometer.MaxTemp);
+    }
+
+    [Fact]
+    public async Task UpdateLimits_WithMissingLimits_ReturnsBadRequest()
+    {
+        using var context = CreateContext();
+        var controller = new ThermometerController(context);
+
+        var request = new TemperatureLimitsRequest(null, 28);
+
+        var result = await controller.UpdateLimits(1, request);
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task Delete_WithUnknownId_ReturnsNotFound()
+    {
+        using var context = CreateContext();
+        var controller = new ThermometerController(context);
+
+        var result = await controller.Delete(999);
+
         Assert.IsType<NotFoundResult>(result);
     }
+
     [Fact]
-    public void Delete_WithExistingId_ReturnsNoContent()
+    public async Task Delete_WithExistingId_ReturnsNoContent()
     {
-        // Arrange
-        var controller = new ThermometerController();
+        using var context = CreateContext();
+        var controller = new ThermometerController(context);
 
-        // Act
-        var result = controller.Delete(1);
+        var result = await controller.Delete(1);
 
-        // Assert
         Assert.IsType<NoContentResult>(result);
+        Assert.Null(await context.Thermometers.FindAsync(1));
     }
 }
