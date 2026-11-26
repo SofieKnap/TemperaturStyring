@@ -6,7 +6,13 @@
         public double CurrentTemp { get; set; }
         public double MinTemp { get; set; }
         public double MaxTemp { get; set; }
-        
+
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public bool HeaterOn => CurrentTemp < MinTemp;
+
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        public bool WindowOpen => CurrentTemp > MaxTemp;
+
         public const double MinAllowedTemp = 10.0;
         public const double MaxAllowedTemp = 30.0;
 
