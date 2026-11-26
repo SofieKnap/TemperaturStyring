@@ -4,7 +4,6 @@ using TemperaturStyring.Models;
 
 namespace TemperaturStyring.Controllers;
 
-[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class ThermometerController : ControllerBase
