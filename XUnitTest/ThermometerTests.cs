@@ -51,7 +51,7 @@ namespace XUnitTest
 
             // Act
             Action act = () => thermometer.ValidateTemp();
-            
+
             // Assert
             Assert.Throws<ArgumentException>(act);
         }
@@ -75,11 +75,11 @@ namespace XUnitTest
         {
             // Arrange
             Thermometer thermometer = new Thermometer(1, 22, 10, 30);
-           
+
             // Act
             Action act = () => thermometer.ValidateTemp();
             var exception = Record.Exception(act);
-            
+
             // Assert
             Assert.Null(exception);
         }
@@ -113,6 +113,79 @@ namespace XUnitTest
             Assert.Equal(25, thermometer.MaxTemp);
         }
 
+        [Fact]
+        public void BelowMinTempTurnsHeaterOn()
+        {
+            // Arrange
+            Thermometer thermometer = new Thermometer(1, 17, 18, 24);
 
+            // Act
+            bool heaterOn = thermometer.HeaterOn;
+            bool windowOpen = thermometer.WindowOpen;
+
+            // Assert
+            Assert.True(heaterOn);
+            Assert.False(windowOpen);
+        }
+
+        [Fact]
+        public void AtMinTempKeepsHeaterOffAndWindowClosed()
+        {
+            // Arrange
+            Thermometer thermometer = new Thermometer(1, 18, 18, 24);
+
+            // Act
+            bool heaterOn = thermometer.HeaterOn;
+            bool windowOpen = thermometer.WindowOpen;
+
+            // Assert
+            Assert.False(heaterOn);
+            Assert.False(windowOpen);
+        }
+
+        [Fact]
+        public void BetweenLimitsKeepsHeaterOffAndWindowClosed()
+        {
+            // Arrange
+            Thermometer thermometer = new Thermometer(1, 20, 18, 24);
+
+            // Act
+            bool heaterOn = thermometer.HeaterOn;
+            bool windowOpen = thermometer.WindowOpen;
+
+            // Assert
+            Assert.False(heaterOn);
+            Assert.False(windowOpen);
+        }
+
+        [Fact]
+        public void AtMaxTempKeepsHeaterOffAndWindowClosed()
+        {
+            // Arrange
+            Thermometer thermometer = new Thermometer(1, 24, 18, 24);
+
+            // Act
+            bool heaterOn = thermometer.HeaterOn;
+            bool windowOpen = thermometer.WindowOpen;
+
+            // Assert
+            Assert.False(heaterOn);
+            Assert.False(windowOpen);
+        }
+
+        [Fact]
+        public void AboveMaxTempOpensWindow()
+        {
+            // Arrange
+            Thermometer thermometer = new Thermometer(1, 25, 18, 24);
+
+            // Act
+            bool heaterOn = thermometer.HeaterOn;
+            bool windowOpen = thermometer.WindowOpen;
+
+            // Assert
+            Assert.False(heaterOn);
+            Assert.True(windowOpen);
+        }
     }
 }
