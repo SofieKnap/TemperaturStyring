@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace TemperaturStyring.Controllers;
 
-[Authorize]
 [Route("frontpage")]
 public class FrontPageController : Controller
 {
